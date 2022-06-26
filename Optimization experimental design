@@ -1,0 +1,63 @@
+# dexpy - Design of Experiments (DOE) in Python
+# dexpy is a Design of Experiments (DOE) package based on the Design-Expert ® software from Stat-Ease, Inc. 
+# The primary purpose of this package is to construct experimental designs. After performing your experiment, you can analyze the collected data using packages such as statsmodels. 
+## Installation of dexpy package
+
+pip install dexpy
+
+# Optimization DOE
+# Example of optimization DOE
+# Problem Statement:
+# A chemist is trying to improve the yield of a chemical process.
+# She can vary:
+# - Reaction time (40-50 minutes)
+# - Temperature (80-90 °C)
+# With one output, or response, variable:
+# - Conversion (%)
+
+# Optimal design by dexpy using build_optimal.
+import dexpy.optimal
+from dexpy.model import ModelOrder
+reaction_design = dexpy.optimal.build_optimal(2, order=ModelOrder.quadratic)
+column_names = ['time', 'temp']
+actual_lows = { 'time': 40, 'temp': 80 }
+actual_highs = { 'time': 50, 'temp': 90 }
+reaction_design.columns = column_names
+print(coded_to_actual(reaction_design, actual_lows, actual_highs))
+
+# Visualization
+import seaborn as sns
+fg = sns.lmplot('time', 'temp', data=reaction_design, fit_reg=False)
+ax = fg.axes[0, 0]
+ax.set_xticks([-1, 0, 1])
+ax.set_xticklabels(['40 min', '45 min', '50 min'])
+ax.set_yticks([-1, 0, 1])
+ax.set_yticklabels(['80C', '85C', '90C'])
+sns.plt.show()
+
+# calculate the D-optimality of this design
+from dexpy.model import make_model, ModelOrder
+from patsy import dmatrix
+import numpy as np
+
+quad_model = make_model(reaction_design.columns, ModelOrder.quadratic)
+X = dmatrix(quad_model, reaction_design)
+XtX = np.dot(np.transpose(X), X)
+d = np.linalg.det(XtX)
+
+print("|(X'X)| for optimal design: {}".format(d))
+
+# Define a run_count parameter
+import dexpy.optimal
+from dexpy.model import ModelOrder
+reaction_design = dexpy.optimal.build_optimal(2, run_count=10, order=ModelOrder.quadratic)
+column_names = ['time', 'temp']
+actual_lows = { 'time': 40, 'temp': 80 }
+actual_highs = { 'time': 50, 'temp': 90 }
+reaction_design.columns = column_names
+print(coded_to_actual(reaction_design, actual_lows, actual_highs))
+
+# Conclusion:
+# Notice that there appears to be only 9 runs in the image. That is because one of the vertices (indicated in red) has been duplicated by the optimal search algorithm. Both run 0 and run 6 have a time of 50 minutes and a temp of 80 °C.
+
+# Note that the run_count parameter must be greater than, or equal to, the size of the model. In this example, the quadratic model y^=1+X1+X2+X1X2+X21+X22 requires at least 6 runs. If you try to pass in too few runs you get an exception.
